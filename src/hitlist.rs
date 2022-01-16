@@ -1,8 +1,6 @@
-use std::f64::consts::PI;
-use std::rc::Rc;
 use std::sync::Arc;
 use crate::hittable::{HitRecord, Hittable};
-use crate::{Ray, Sphere};
+use crate::{Ray};
 use crate::aabb::AABB;
 
 pub struct HitList {

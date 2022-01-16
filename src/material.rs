@@ -42,14 +42,14 @@ impl Materials {
                 *attenuation = Color::new(1.0, 1.0, 1.0);
 
                 let refraction_ratio = if rec.front_face {
-                    (1.0 / *ir)
+                    1.0 / *ir
                 } else { *ir };
 
                 let unit_direction = r_in.dir().normalized();
                 let cos_theta = (-unit_direction).dot(&rec.normal).min(1.0);
                 let sin_theta = (1.0 - cos_theta * cos_theta).sqrt();
                 let cannot_refract = refraction_ratio * sin_theta > 1.0;
-                let mut direction = Vec3::new_empty();
+                let direction: Vec3;
 
                 if cannot_refract
                     || dieelectric_reflectance(cos_theta, refraction_ratio) > rand::thread_rng().gen::<f64>() {

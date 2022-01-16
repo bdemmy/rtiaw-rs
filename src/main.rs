@@ -10,23 +10,17 @@ mod raytrace;
 mod aabb;
 mod bvh;
 
-use std::ops::Deref;
-use std::rc::Rc;
-use rayon::prelude::*;
-use std::sync::atomic::*;
 use std::sync::{Arc, Mutex};
 use glium::*;
 use std::time::{Duration, Instant};
 use glium::glutin::dpi::PhysicalSize;
 use glium::texture::RawImage2d;
-use image::{Rgba, RgbaImage, RgbImage};
-use crate::glutin::dpi::Size;
+use image::{RgbaImage};
 use crate::hitlist::HitList;
 use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::vec3::{Color, Point3, Vec3};
-use rand::Rng;
 use crate::camera::Camera;
 use crate::material::{Materials};
 use crate::raytrace::RTParams;
@@ -50,13 +44,11 @@ static MAX_DEPTH: i32 = 10;
 
 fn main() {
     // Create our image object and wrap it within Arc<Mutex>
-    let mut image = RgbaImage::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
+    let image = RgbaImage::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
     let shared_image = Arc::new(Mutex::new(image));
 
-    use glium::{glutin, Surface};
-
     // Initialize window and opengl context
-    let mut event_loop = glutin::event_loop::EventLoop::new();
+    let event_loop = glutin::event_loop::EventLoop::new();
     let mut wb = glutin::window::WindowBuilder::new();
     wb = wb.with_inner_size(PhysicalSize { width: IMAGE_WIDTH, height: IMAGE_HEIGHT });
     let cb = glutin::ContextBuilder::new();

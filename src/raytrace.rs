@@ -1,11 +1,7 @@
-use std::process::id;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
-use glium::vertex::MultiVerticesSource;
-use image::{DynamicImage, Rgba, RgbaImage};
-use image::DynamicImage::ImageRgb8;
-use image::math::utils::clamp;
-use rand::{Rng, thread_rng};
+use image::{Rgba, RgbaImage};
+use rand::{Rng};
 use rand::prelude::SliceRandom;
 use rayon::prelude::*;
 use crate::{Camera, Color, HitList, HitRecord, Hittable, Point3, Ray, Vec3};
@@ -73,7 +69,6 @@ pub fn run_rt(mut params: RTParams, world: &HitList, image: Arc<Mutex<RgbaImage>
     (0..16).into_par_iter().for_each(|j| {
         let mut rng = rand::thread_rng();
         let mut pixels: Vec<((u32, u32), Rgba<u8>)> = Vec::new();
-        let mut next_pos = j;
         pixels.reserve(params.width as usize);
 
         let mut indices: Vec<u32> = (j..(params.width * params.height)).step_by(16).collect();
@@ -83,7 +78,7 @@ pub fn run_rt(mut params: RTParams, world: &HitList, image: Arc<Mutex<RgbaImage>
             let mut pixel_color = Color::new_empty();
 
             let px = i % params.width;
-            let py = (i / params.width);
+            let py = i / params.width;
 
             for _ in 0..params.samples_per_pixel {
                 let u = (px as f64 + rng.gen::<f64>()) / (params.width as f64 - 1.0);

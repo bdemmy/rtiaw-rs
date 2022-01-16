@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 use rand::Rng;
 use crate::aabb::AABB;
-use crate::{HitList, Hittable, Sphere};
+use crate::{HitList, Hittable};
 use crate::hittable::HitRecord;
 use crate::ray::Ray;
 
@@ -31,7 +31,7 @@ impl BvhNode {
     pub fn new(src_objects: &Vec<Arc<dyn Hittable>>, start: usize, end: usize, time0: f64, time1: f64) -> BvhNode {
         let mut objects = src_objects.clone();
 
-        let axis = rand::thread_rng().gen_range((0usize..2usize));
+        let axis = rand::thread_rng().gen_range(0usize..2usize);
         let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| -> std::cmp::Ordering {
             let box_compare = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize| -> Ordering {
                 let mut box_a = AABB::new_empty();
@@ -122,7 +122,7 @@ impl Hittable for BvhNode {
         left_hit || right_hit
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut AABB) -> bool {
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut AABB) -> bool {
         *output_box = self.bounding_box;
         true
     }

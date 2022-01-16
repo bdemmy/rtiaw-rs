@@ -1,6 +1,4 @@
 use std::borrow::Borrow;
-use std::rc::Rc;
-use std::sync::Arc;
 use crate::hittable::{HitRecord, Hittable};
 use crate::{Materials, Point3, Vec3};
 use crate::aabb::AABB;
@@ -43,7 +41,7 @@ impl Hittable for Sphere {
         true
     }
 
-    fn bounding_box(&self, time0: f64, time1: f64, output_box: &mut AABB) -> bool {
+    fn bounding_box(&self, _time0: f64, _time1: f64, output_box: &mut AABB) -> bool {
         *output_box = AABB::new(
             (self.center - Vec3::new(self.radius, self.radius, self.radius)).borrow(),
             (self.center + Vec3::new(self.radius, self.radius, self.radius)).borrow()

@@ -1,5 +1,3 @@
-use std::rc::Rc;
-use std::sync::Arc;
 use crate::{Materials, Point3, Ray, Vec3};
 use crate::aabb::AABB;
 

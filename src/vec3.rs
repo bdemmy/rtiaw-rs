@@ -96,7 +96,6 @@ impl Vec3 {
    }
 
    pub fn random_in_unit_sphere() -> Vec3 {
-      let mut rng = rand::thread_rng();
       loop {
          let p = Vec3::random_range(-1.0, 1.0);
          if p.length_squared() >= 1.0 {
