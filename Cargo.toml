@@ -11,6 +11,7 @@ glium = "*"
 image = "*"
 rand = "*"
 itertools = "*"
+oidn = "1.4.2"
 
 [profile.release]
 debug = true

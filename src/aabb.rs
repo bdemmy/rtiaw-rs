@@ -35,21 +35,24 @@ impl AABB {
     }
 
     pub fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> bool {
+        //let mut t1 = (self.min().e[0] - r.origin().e[0]) * r.inv_dir().e[0];
+        //let mut t2 = (self.max().e[0] - r.origin().e[0]) * r.inv_dir().e[0];
+
+        let mut t_min = t_min; // t1.min(t2);
+        let mut t_max = t_max; // t1.max(t2);
+
+        let mut t1;
+        let mut t2;
+
         for i in 0..3 {
-            let inv_d = 1.0 / r.dir().e[i];
-            let mut t0 = (self.min().e[i] - r.origin().e[i]) * inv_d;
-            let mut t1 = (self.max().e[i] - r.origin().e[i]) * inv_d;
-            if inv_d < 0.0 {
-                swap(&mut t0, &mut t1);
-            }
-            let t_min2 = if t0 > t_min { t0 } else { t_min };
-            let t_max2 = if t1 < t_max { t1 } else { t_max };
-            if t_max2 <= t_min2 {
-                return false;
-            }
+            t1 = (self.min().e[i] - r.origin().e[i]) * r.inv_dir().e[i];
+            t2 = (self.max().e[i] - r.origin().e[i]) * r.inv_dir().e[i];
+
+            t_min = t_min.max(t1.min(t2));
+            t_max = t_max.min(t1.max(t2));
         }
 
-        true
+        t_max > t_min.max(0.0)
     }
 
     pub fn surrounding_box(left: &AABB, right: &AABB) -> AABB {

@@ -25,9 +25,6 @@ use crate::camera::Camera;
 use crate::material::{Materials};
 use crate::raytrace::RTParams;
 
-extern crate glium;
-extern crate image;
-
 #[derive(Copy, Clone)]
 struct TexVertex {
     position: [f32; 2],
@@ -37,12 +34,15 @@ struct TexVertex {
 implement_vertex!(TexVertex, position, tex_coords);
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
-static IMAGE_WIDTH: u32 = 1280;
+static IMAGE_WIDTH: u32 = 2560;
 static IMAGE_HEIGHT: u32 = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
-static SAMPLES_PER_PIXEL: u32 = 10;
-static MAX_DEPTH: i32 = 10;
+static SAMPLES_PER_PIXEL: u32 = 50;
+static MAX_DEPTH: i32 = 5;
 
 fn main() {
+    // Rayon test
+    //rayon::ThreadPoolBuilder::new().num_threads(16).build_global().unwrap();
+
     // Create our image object and wrap it within Arc<Mutex>
     let image = RgbaImage::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
     let shared_image = Arc::new(Mutex::new(image));

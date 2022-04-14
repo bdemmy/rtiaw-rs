@@ -31,7 +31,7 @@ impl BvhNode {
     pub fn new(src_objects: &Vec<Arc<dyn Hittable>>, start: usize, end: usize, time0: f64, time1: f64) -> BvhNode {
         let mut objects = src_objects.clone();
 
-        let axis = rand::thread_rng().gen_range(0usize..2usize);
+        let axis = 1;//rand::thread_rng().gen_range(0usize..3usize);
         let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| -> std::cmp::Ordering {
             let box_compare = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize| -> Ordering {
                 let mut box_a = AABB::new_empty();
@@ -56,24 +56,19 @@ impl BvhNode {
 
         let object_span = end - start;
 
-        println!("{}", object_span);
+        //println!("{}", object_span);
+
+        objects[start..end].sort_by(comparator);
 
         if object_span == 1 {
             new.left = Some(objects[start].clone());
             new.right = new.left.clone();
         }
         else if object_span == 2 {
-            if comparator(&objects[start], &objects[start + 1]) == Ordering::Less {
-                new.left = Some(objects[start].clone());
-                new.right = Some(objects[start + 1].clone());
-            }
-            else {
-                new.right = Some(objects[start].clone());
-                new.left = Some(objects[start + 1].clone());
-            }
+            new.left = Some(objects[start].clone());
+            new.right = Some(objects[start + 1].clone());
         }
         else {
-            objects[start..end].sort_by(comparator);
             let mid = start + (object_span / 2);
             new.left = Some(Arc::new(BvhNode::new(&objects, start, mid, time0, time1)));
             new.right = Some(Arc::new(BvhNode::new(&objects, mid, end, time0, time1)));

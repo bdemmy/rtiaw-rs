@@ -74,7 +74,7 @@ pub fn random_scene() -> HitList {
 
     world.add(Arc::new(Sphere {
         center: Point3::new(-4.0, 1.0, 0.0),
-        radius: -0.95,
+        radius: 1.0,
         material: mat_center.clone(),
     }));
 
