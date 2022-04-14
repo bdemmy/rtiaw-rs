@@ -22,6 +22,7 @@ use crate::ray::Ray;
 use crate::sphere::Sphere;
 use crate::vec3::{Color, Point3, Vec3};
 use crate::camera::Camera;
+use crate::glutin::window::Fullscreen;
 use crate::material::{Materials};
 use crate::raytrace::RTParams;
 
@@ -40,26 +41,25 @@ static SAMPLES_PER_PIXEL: u32 = 50;
 static MAX_DEPTH: i32 = 5;
 
 fn main() {
-    // Rayon test
-    //rayon::ThreadPoolBuilder::new().num_threads(16).build_global().unwrap();
-
     // Create our image object and wrap it within Arc<Mutex>
     let image = RgbaImage::new(IMAGE_WIDTH as u32, IMAGE_HEIGHT as u32);
     let shared_image = Arc::new(Mutex::new(image));
 
     // Initialize window and opengl context
     let event_loop = glutin::event_loop::EventLoop::new();
-    let mut wb = glutin::window::WindowBuilder::new();
-    wb = wb.with_inner_size(PhysicalSize { width: IMAGE_WIDTH, height: IMAGE_HEIGHT });
+    let mut wb = glutin::window::WindowBuilder::new()
+        .with_inner_size(PhysicalSize { width: IMAGE_WIDTH, height: IMAGE_HEIGHT })
+        .with_fullscreen(Some(Fullscreen::Borderless(None)));
     let cb = glutin::ContextBuilder::new();
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
     // Create square shape to pass to GPU
-    let vertex1 = TexVertex { position: [-1.0, 1.0], tex_coords: [0.0, 1.0] };
-    let vertex2 = TexVertex { position: [1.0, 1.0], tex_coords: [1.0, 1.0] };
-    let vertex3 = TexVertex { position: [-1.0, -1.0], tex_coords: [0.0, 0.0] };
-    let vertex4 = TexVertex { position: [1.0, -1.0], tex_coords: [1.0, 0.0] };
-    let shape = vec![vertex1, vertex2, vertex3, vertex4];
+    let shape = vec![
+        TexVertex { position: [-1.0, 1.0], tex_coords: [0.0, 1.0] },
+        TexVertex { position: [1.0, 1.0], tex_coords: [1.0, 1.0] },
+        TexVertex { position: [-1.0, -1.0], tex_coords: [0.0, 0.0] },
+        TexVertex { position: [1.0, -1.0], tex_coords: [1.0, 0.0] }
+    ];
 
     // Create vertex buffer for shape
     let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
@@ -95,6 +95,12 @@ fn main() {
                 glutin::event::WindowEvent::CloseRequested => {
                     *control_flow = glutin::event_loop::ControlFlow::Exit;
                     return;
+                }
+                glutin::event::WindowEvent::KeyboardInput { input, ..} => {
+                    if input.scancode == 1 {
+                        *control_flow = glutin::event_loop::ControlFlow::Exit;
+                        return;
+                    }
                 }
                 _ => return,
             },

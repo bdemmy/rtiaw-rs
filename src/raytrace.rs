@@ -198,7 +198,7 @@ fn denoise(image: &Arc<Mutex<RgbaImage>>) {
         .expect("Invalid input image dimensions?");
 
     if let Err(e) = device.get_error() {
-        println!("Error denosing image: {}", e.1);
+        println!("Error denoising image: {}", e.1);
     }
 
     let mut original_image = image.lock().unwrap();

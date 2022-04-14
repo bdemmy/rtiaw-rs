@@ -35,11 +35,8 @@ impl AABB {
     }
 
     pub fn hit(&self, r: &Ray, t_min: f64, t_max: f64) -> bool {
-        //let mut t1 = (self.min().e[0] - r.origin().e[0]) * r.inv_dir().e[0];
-        //let mut t2 = (self.max().e[0] - r.origin().e[0]) * r.inv_dir().e[0];
-
-        let mut t_min = t_min; // t1.min(t2);
-        let mut t_max = t_max; // t1.max(t2);
+        let mut t_min = t_min;
+        let mut t_max = t_max;
 
         let mut t1;
         let mut t2;

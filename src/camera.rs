@@ -12,23 +12,23 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(lookfrom: Point3, lookat: Point3, vup: Vec3, fov: f64, aspect_ratio: f64, aperature: f64, focus_dist: f64) -> Camera {
+    pub fn new(look_from: Point3, look_at: Point3, vup: Vec3, fov: f64, aspect_ratio: f64, aperture: f64, focus_dist: f64) -> Camera {
         let theta = fov.to_radians();
         let h = (theta / 2.0).tan();
         let viewport_height = 2.0 * h;
         let viewport_width = aspect_ratio * viewport_height;
 
-        let w = (lookfrom - lookat).normalized();
+        let w = (look_from - look_at).normalized();
         let u = vup.cross(&w).normalized();
         let v = w.cross(&u);
 
         let mut cam = Camera {
-            origin: lookfrom,
+            origin: look_from,
             horizontal: u * viewport_width * focus_dist,
             vertical: v * viewport_height * focus_dist,
             lower_left_corner: Point3::new_empty(),
             u, v, w,
-            lens_radius: aperature / 2.0
+            lens_radius: aperture / 2.0
         };
 
         cam.lower_left_corner = cam.origin - cam.horizontal / 2.0 - cam.vertical / 2.0 - w * focus_dist;
