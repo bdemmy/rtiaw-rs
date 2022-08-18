@@ -1,11 +1,15 @@
-use crate::{Materials, Point3, Ray, Vec3};
+use std::sync::Arc;
+use crate::{Color, Materials, Point3, Ray, Vec3};
 use crate::aabb::AABB;
+use crate::texture::Texture::SolidColor;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
     pub t: f64,
+    pub u: f64,
+    pub v: f64,
     pub front_face: bool,
     pub material: Materials
 }
@@ -23,8 +27,10 @@ impl Default for HitRecord {
             p: Point3::new_empty(),
             normal: Vec3::new_empty(),
             t: 0.0,
+            u: 0.0,
+            v: 0.0,
             front_face: false,
-            material: Materials::Lambertian { albedo: Vec3::new_empty() }
+            material: Materials::Lambertian {albedo: SolidColor{color_value: Color::new_empty()}}
         }
     }
 }

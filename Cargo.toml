@@ -12,6 +12,8 @@ image = "*"
 rand = "*"
 itertools = "*"
 oidn = "1.4.2"
+noise = "0.7.0"
+tobj = "*"
 
 [profile.release]
 debug = true

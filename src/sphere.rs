@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::f64::consts::PI;
 use crate::hittable::{HitRecord, Hittable};
 use crate::{Materials, Point3, Vec3};
 use crate::aabb::AABB;
@@ -9,6 +10,16 @@ pub struct Sphere {
     pub(crate) center: Point3,
     pub(crate) radius: f64,
     pub material: Materials
+}
+
+impl Sphere {
+    fn get_sphere_uv(&self, p: &Point3, u: &mut f64, v: &mut f64) {
+        let theta = (-p.y()).acos();
+        let phi = (-p.z().atan2(p.x())) + PI;
+
+        *u = phi / (2.0 * PI);
+        *v = theta / PI;
+    }
 }
 
 impl Hittable for Sphere {
@@ -36,6 +47,7 @@ impl Hittable for Sphere {
         rec.p = ray.at(rec.t);
         let outward_normal = (rec.p - self.center) / self.radius;
         rec.set_face_normal(ray, &outward_normal);
+        self.get_sphere_uv(&outward_normal, &mut rec.u, &mut rec.v);
         rec.material = self.material.clone();
 
         true

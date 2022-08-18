@@ -9,6 +9,8 @@ mod scene;
 mod raytrace;
 mod aabb;
 mod bvh;
+mod texture;
+mod triangle;
 
 use std::sync::{Arc, Mutex};
 use glium::*;

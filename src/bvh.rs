@@ -31,7 +31,7 @@ impl BvhNode {
     pub fn new(src_objects: &Vec<Arc<dyn Hittable>>, start: usize, end: usize, time0: f64, time1: f64) -> BvhNode {
         let mut objects = src_objects.clone();
 
-        let axis = 1;//rand::thread_rng().gen_range(0usize..3usize);
+        let axis = rand::thread_rng().gen_range(0usize..3usize);
         let comparator = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>| -> std::cmp::Ordering {
             let box_compare = |a: &Arc<dyn Hittable>, b: &Arc<dyn Hittable>, axis: usize| -> Ordering {
                 let mut box_a = AABB::new_empty();

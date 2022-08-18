@@ -6,6 +6,7 @@ use rand::prelude::SliceRandom;
 use rayon::prelude::*;
 use crate::{Camera, Color, HitList, HitRecord, Hittable, Point3, Ray, Vec3};
 use crate::glutin::event::VirtualKeyCode::P;
+use crate::scene::Scene;
 
 pub struct RTParams {
     aspect_ratio: f64,
@@ -27,150 +28,70 @@ impl RTParams {
     }
 }
 
-fn ray_color(ray: &Ray, world: &dyn Hittable, depth: i32) -> Color {
+fn ray_color(ray: &Ray, background: &Color, world: &dyn Hittable, depth: i32) -> Color {
     let mut rec = HitRecord::default();
 
     if depth <= 0 {
         return Color::new_empty();
     }
 
-    if world.hit(ray, 0.001, f64::INFINITY, &mut rec) {
-        let mut scattered = Ray::new_empty();
-        let mut attenuation = Color::new_empty();
-        if rec.material.scatter(&ray, &rec, &mut attenuation, &mut scattered) {
-            if attenuation.length() < 0.1 {
-                return attenuation;
-            }
-            return attenuation * ray_color(&scattered, world, depth - 1);
-        }
-        return Color::new_empty();
+    if !world.hit(ray, 0.001, f64::INFINITY, &mut rec) {
+        return *background;
     }
+
+    let mut scattered = Ray::new_empty();
+    let mut attenuation = Color::new_empty();
+    let emitted = rec.material.emitted(rec.u, rec.v, &rec.p);
+
+    if !rec.material.scatter(ray, &rec, &mut attenuation, &mut scattered) {
+        return emitted;
+    }
+
+    return emitted + attenuation * ray_color(&scattered, background, world, depth - 1);
+    /*if !rec.material.scatter(&ray, &rec, &mut attenuation, &mut scattered) {
+        if attenuation.length() < 0.1 {
+            return attenuation;
+        }
+        return attenuation * ray_color(&scattered, world, depth - 1);
+    }
+    return Color::new_empty();
 
     let unit_direction = ray.dir().normalized();
     let t = 0.5 * (unit_direction.y() + 1.0);
-    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t
+    Color::new(1.0, 1.0, 1.0) * (1.0 - t) + Color::new(0.5, 0.7, 1.0) * t*/
 }
 
 fn rgba_to_color(rgba: &Rgba<u8>) -> Color {
     Color::new(rgba.0[0], rgba.0[1], rgba.0[2])
 }
 
-pub fn run_rt(mut params: RTParams, world: &HitList, image: Arc<Mutex<RgbaImage>>) {
-    let start = Instant::now();
+fn trace_pixel(px: u32, py: u32, params: &RTParams, scene: &Scene) -> Rgba<u8> {
+    let mut rng = rand::thread_rng();
 
-    let cam = Camera::new(
-        Point3::new(0, 3, -5),
-        Point3::new(0, 0, 0),
-        Vec3::new(0, 1, 0),
-        70.0,
-        params.aspect_ratio,
-        0.00001,
-        10.0);
+    let mut pixel_color = Color::new_empty();
 
-    // Helper functions for raytracing single pixels
-    //  as well as flushing to the output image when needed
-    let rt_pixel = |px: u32, py: u32| {
-        let mut rng = rand::thread_rng();
+    for _ in 0..params.samples_per_pixel {
+        let u = (px as f64 + rng.gen::<f64>()) / (params.width as f64 - 1.0);
+        let v = ((params.height - py) as f64 + rng.gen::<f64>()) / (params.height as f64 - 1.0);
 
-        let mut pixel_color = Color::new_empty();
+        let r = scene.camera.ray(u, v);
+        pixel_color += ray_color(&r, &scene.sky_color, &scene.hit_list, params.max_depth);
+    }
 
-        for _ in 0..params.samples_per_pixel {
-            let u = (px as f64 + rng.gen::<f64>()) / (params.width as f64 - 1.0);
-            let v = ((params.height - py) as f64 + rng.gen::<f64>()) / (params.height as f64 - 1.0);
+    let scale = 1.0 / params.samples_per_pixel as f64;
+    //pixel_color = pixel_color * scale;
+    pixel_color.e[0] = (scale * pixel_color.x()).sqrt();
+    pixel_color.e[1] = (scale * pixel_color.y()).sqrt();
+    pixel_color.e[2] = (scale * pixel_color.z()).sqrt();
 
-            let r = cam.ray(u, v);
-            pixel_color += ray_color(&r, world, params.max_depth);
-        }
+    let ir = (pixel_color.x().clamp(0.0, 0.999) * 256.0) as u8;
+    let ig = (pixel_color.y().clamp(0.0, 0.999) * 256.0) as u8;
+    let ib = (pixel_color.z().clamp(0.0, 0.999) * 256.0) as u8;
 
-        let scale = 1.0 / params.samples_per_pixel as f64;
-        //pixel_color = pixel_color * scale;
-        pixel_color.e[0] = (scale * pixel_color.x()).sqrt();
-        pixel_color.e[1] = (scale * pixel_color.y()).sqrt();
-        pixel_color.e[2] = (scale * pixel_color.z()).sqrt();
-
-        let ir = (pixel_color.x().clamp(0.0, 0.999) * 256.0) as u8;
-        let ig = (pixel_color.y().clamp(0.0, 0.999) * 256.0) as u8;
-        let ib = (pixel_color.z().clamp(0.0, 0.999) * 256.0) as u8;
-
-        return Rgba([ir, ig, ib, 255]);
-    };
-    let flush_pixels = |imge: &Arc<Mutex<RgbaImage>>, mut pixels: &mut Vec<((u32, u32), Rgba<u8>)>, force: bool| {
-        if pixels.len() > 250 || force {
-            let mut img = image.lock().unwrap();
-            pixels.iter().for_each(|pixel|{
-                img.put_pixel(pixel.0.0, pixel.0.1, pixel.1);
-            });
-            pixels.clear();
-        }
-    };
-
-    // Run the raytrace on half of the pixels
-    (0..16).into_par_iter().for_each(|j| {
-        let mut rng = rand::thread_rng();
-        let mut pixels: Vec<((u32, u32), Rgba<u8>)> = Vec::new();
-        pixels.reserve((params.width * params.height) as usize);
-
-        (j..(params.width * params.height)).step_by(16)
-            .filter(|x| {
-                return true; //x % 2 == 0
-            }).for_each(|i| {
-            let px = i % params.width;
-            let py = i / params.width;
-
-            pixels.push(((px, py), rt_pixel(px, py)));
-            flush_pixels(&image, &mut pixels, false);
-        });
-
-        flush_pixels(&image, &mut pixels, true);
-    });
-
-    // Fill the other half of the pixels via interpolation
-    // Only raytracing if interpolation would be too extreme
-    /*(0..16).into_par_iter().for_each(|j| {
-        let local_copy = image.lock().unwrap().clone();
-        let mut rng = rand::thread_rng();
-        let mut pixels: Vec<((u32, u32), Rgba<u8>)> = Vec::new();
-        pixels.reserve((params.width * params.height) as usize);
-
-        (j..(params.width * params.height))
-            .step_by(16)
-            .filter(|x| {
-                x % 2 == 1
-            }).for_each(|i| {
-            let px = i % params.width;
-            let py = i / params.width;
-
-            if px == 0 || px == params.width - 1 {
-                pixels.push(((px, py), rt_pixel(px, py)));
-            } else {
-                let left = rgba_to_color(local_copy.get_pixel(px - 1, py));
-                let right = rgba_to_color(local_copy.get_pixel(px + 1, py));
-                if (left - right).length() > 25.0 {
-                    pixels.push(((px, py), rt_pixel(px, py)));
-                } else {
-                    let avg = (left + right) / 2.0;
-                    pixels.push(((px, py), Rgba([avg.x() as u8, avg.y() as u8, avg.z() as u8, 255])));
-                }
-            }
-
-            flush_pixels(&image, &mut pixels, false);
-        });
-
-        flush_pixels(&image, &mut pixels, true);
-    });*/
-
-    let elapsed = Instant::now() - start;
-    println!("Total time taken for rt: {}.{}s", elapsed.as_secs(), elapsed.as_millis() % 1000);
-
-    image.lock().unwrap().save("output.png").expect("Error saving image!");
-    denoise(&image);
-
-    // Run rt again with double the sample count
-    params.samples_per_pixel *= 2;
-    run_rt(params, world, image);
+    return Rgba([ir, ig, ib, 255]);
 }
 
-fn denoise(image: &Arc<Mutex<RgbaImage>>) {
+fn oidn(image: &Arc<Mutex<RgbaImage>>) {
     let input = image.lock().unwrap().clone();
 
     // OIDN works on float images only, so convert this to a floating point image
@@ -234,4 +155,105 @@ fn denoise(image: &Arc<Mutex<RgbaImage>>) {
         input.height(),
         ColorType::Rgb8,
     ).expect("Failed to save output image");
+}
+
+pub fn run_rt(mut params: RTParams, scene: &Scene, image: Arc<Mutex<RgbaImage>>) {
+    let start = Instant::now();
+
+    // Helper functions for raytracing single pixels
+    //  as well as flushing to the output image when needed
+    let flush_pixels = |imge: &Arc<Mutex<RgbaImage>>, mut pixels: &mut Vec<((u32, u32), Rgba<u8>)>, force: bool| {
+        if pixels.len() > 250 || force {
+            let mut img = image.lock().unwrap();
+            pixels.iter().for_each(|pixel|{
+                img.put_pixel(pixel.0.0, pixel.0.1, pixel.1);
+            });
+            pixels.clear();
+        }
+    };
+
+    // Run the raytrace on half of the pixels
+    (0..16).into_par_iter().for_each(|j| {
+        let mut rng = rand::thread_rng();
+        let mut pixels: Vec<((u32, u32), Rgba<u8>)> = Vec::new();
+        pixels.reserve((params.width * params.height) as usize);
+
+        (j..(params.width * params.height)).step_by(16)
+            .filter(|x| {
+                /*let row = x / params.width;
+                return if row % 2 == 0 {
+                    x % 2 == 0
+                } else {
+                    x % 2 == 1
+                }*/
+                true
+            }).for_each(|i| {
+            let px = i % params.width;
+            let py = i / params.width;
+
+            pixels.push(((px, py), trace_pixel(px, py, &params, &scene)));
+            flush_pixels(&image, &mut pixels, false);
+        });
+
+        flush_pixels(&image, &mut pixels, true);
+    });
+
+    // Fill the other half of the pixels via interpolation
+    // Only raytracing if interpolation would be too extreme
+    /*(0..16).into_par_iter().for_each(|j| {
+        let local_copy = image.lock().unwrap().clone();
+        let mut rng = rand::thread_rng();
+        let mut pixels: Vec<((u32, u32), Rgba<u8>)> = Vec::new();
+        pixels.reserve((params.width * params.height) as usize);
+
+        (j..(params.width * params.height))
+            .step_by(16)
+            .filter(|x| {
+                let row = x / params.width;
+                return if row % 2 == 0 {
+                    x % 2 == 1
+                } else {
+                    x % 2 == 0
+                }
+            }).for_each(|i| {
+            let px = i % params.width;
+            let py = i / params.width;
+
+            let avg = Color::new(255.0,255.0,255.0);
+            pixels.push(((px, py), Rgba([avg.x() as u8, avg.y() as u8, avg.z() as u8, 255])));
+
+            if px == 0 || px == params.width - 1 || py == 0 || py == params.height - 1 {
+                pixels.push(((px, py), rt_pixel(px, py)));
+            } else {
+                let left = rgba_to_color(local_copy.get_pixel(px - 1, py));
+                let right = rgba_to_color(local_copy.get_pixel(px + 1, py));
+                let top = rgba_to_color(local_copy.get_pixel(px + 1, py));
+                let bottom = rgba_to_color(local_copy.get_pixel(px + 1, py));
+                let avg = (left + right + top + bottom) / 4.0;
+
+                if (left - avg).length() > 25.0
+                    || (right - avg).length() > 25.0
+                    || (top - avg).length() > 25.0
+                    || (bottom - avg).length() > 25.0 {
+                    pixels.push(((px, py), rt_pixel(px, py)));
+                } else {
+                    pixels.push(((px, py), Rgba([avg.x() as u8, avg.y() as u8, avg.z() as u8, 255])));
+                }
+            }
+
+            flush_pixels(&image, &mut pixels, false);
+        });
+
+        flush_pixels(&image, &mut pixels, true);
+    });*/
+
+    let elapsed = Instant::now() - start;
+    println!("Total time taken for rt: {}.{}s", elapsed.as_secs(), elapsed.as_millis() % 1000);
+
+    image.lock().unwrap().save("output.png").expect("Error saving image!");
+    //oidn(&image);
+
+    // Run rt again with double the sample count
+    params.samples_per_pixel *= 2;
+    run_rt(params, scene, image);
 }

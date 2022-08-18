@@ -1,12 +1,15 @@
-use crate::Vec3;
+use std::sync::Arc;
+use crate::{Point3, Vec3};
 use crate::{Color, HitRecord, Ray};
 use rand;
 use rand::Rng;
+use crate::texture::Texture;
 
-#[derive(Copy, Clone)]
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub enum Materials {
     Lambertian{
-        albedo: Color
+        albedo: Texture
     },
     Metal {
         albedo: Color,
@@ -14,6 +17,9 @@ pub enum Materials {
     },
     DiElectric {
         ir: f64
+    },
+    DiffuseLight {
+        tex: Texture
     }
 }
 
@@ -27,7 +33,7 @@ impl Materials {
                 }
 
                 *scattered = Ray::new(rec.p, scatter_direction);
-                *attenuation = *albedo;
+                *attenuation = albedo.value(rec.u, rec.v, &rec.p);
 
                 true
             }
@@ -61,7 +67,18 @@ impl Materials {
                 *scattered = Ray::new(rec.p, direction);
 
                 true
+            },
+            Materials::DiffuseLight {tex } => {
+                false
             }
+        }
+    }
+    pub fn emitted(&self, u: f64, v: f64, p: &Point3) -> Color {
+        return match self {
+            Materials::DiffuseLight { tex } => {
+                tex.value(u, v, p)
+            },
+            _ => Color::new_empty()
         }
     }
 }
